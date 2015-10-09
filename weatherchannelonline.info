@@ -1,0 +1,8 @@
+name = VB Last logged in
+description = "Last logged in module for test"
+package = Valters Boze
+core = 7.x
+version = 0.1
+files[] = weatherchannelonline.module
+dependencies[] = block
+dependencies[] = php	

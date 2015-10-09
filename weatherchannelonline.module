@@ -1,0 +1,178 @@
+<?php
+/**
+ * @file
+ * A block module that displays last logged in.
+ */
+ 
+ /**
+ * Implements hook_block_info().
+ */
+
+function weatherchannelonline_block_info() 
+{
+	global $user;
+	$blocks['weatherchannelonline'] = array(
+	  
+			'info' => t('Last Logged In'),
+			'cache' => DRUPAL_NO_CACHE,
+			'region' => 'sidebar_first',			 
+			'status' => 1,
+			'weight' => 0,
+			'visibility' => BLOCK_VISIBILITY_PHP,
+			'pages' => '<?php return user_is_logged_in(); ?>',
+	 );
+	  
+	 return $blocks;
+	  
+}
+
+/*
+* Implements hook_block_info_alter().
+*/
+function weatherchannelonline_block_info_alter(&$blocks, $theme, $code_blocks) 
+{
+	
+	if (isset($blocks['weatherchannelonline']['weatherchannelonline'])) 
+	{
+	
+		$blocks['weatherchannelonline']['weatherchannelonline']['status'] = 1;
+		$blocks['weatherchannelonline']['weatherchannelonline']['weight'] = 0;
+		$blocks['weatherchannelonline']['weatherchannelonline']['region'] = 'sidebar_first';
+		$blocks['weatherchannelonline']['weatherchannelonline']['visibility'] = BLOCK_VISIBILITY_PHP;
+		$blocks['weatherchannelonline']['weatherchannelonline']['pages'] = '<?php return user_is_logged_in(); ?>';
+		$blocks['weatherchannelonline']['weatherchannelonline']['cache'] = DRUPAL_NO_CACHE;
+	}
+}
+
+/**
+ * Implements hook_block_view(). 
+ * Block view
+ */
+ 
+function weatherchannelonline_block_view($delta = '') 
+{
+	global $user;
+	
+	switch ($delta) 
+	{
+	
+    case 'weatherchannelonline':
+		
+      $logintext = ((isset($user->data['customlogintext']) && ($user->data['customlogintext'] != '')) ? $user->data['customlogintext'] : 'You last logged in at  ');
+		
+      $logindate = ((isset($user->data['lastloggedin']) && ($user->data['lastloggedin'] != '')) ? $user->data['lastloggedin'] : 'Just now');
+		
+      $block['subject'] = t("@text <br>@date", array('@text' => $logintext, '@date' => $logindate));
+		
+      $block['content'] = array(
+			
+			'#attached' => array(
+				
+				'js' => array(
+				
+					drupal_get_path('module', 'weatherchannelonline') . '/js/weatherchannelonline.js',
+				),
+			),
+      );
+		
+		return $block;
+	}
+}
+
+
+
+
+/**
+ * Implements hook_form_alter(). 
+ * Adding custom text within user profile
+ */
+function weatherchannelonline_form_alter(&$form, &$form_state, $form_id) 
+{
+	
+	switch ($form_id) 
+	{
+		
+		case 'user_profile_form':
+
+      $form['account']['customlogintext'] = array(
+		
+			'#type' => 'textfield',
+			'#title' => t('Custom last logged in text'),
+			'#default_value' => ((isset($form['#user']->data['customlogintext']) && ($form['#user']->data['customlogintext'] != '')) ? $form['#user']->data['customlogintext'] : 'Last logged in:'),
+      );
+		
+      $form['#submit'][] = 'weatherchannelonline_submit'; // custom function on submit
+
+      break;
+  }
+}
+ 
+function weatherchannelonline_submit($form, &$form_state) {
+
+  $user = user_load($form['#user']->uid);
+
+  $edit = array(
+    'data' => array(
+      'customlogintext' => $form_state['values']['customlogintext'],
+    ),
+  );
+
+  user_save($user, $edit);
+}
+
+
+/**
+ * Implements hook_user_login(). 
+ * Saving logged in date here.
+ */
+ 
+function weatherchannelonline_user_login(&$edit, $account) 
+{
+  
+  date_default_timezone_set($account->timezone);
+  
+  $date = date('m-d-Y H:i:s');
+
+  $edit = array(
+  
+		'data' => array(
+		
+			'savelogin' => $date,
+			'lastloggedin' => ((isset($account->data['savelogin']) && ($account->data['savelogin'] != '' )) ? $account->data['savelogin'] : $date),
+		),
+	);
+
+  user_save($account, $edit);
+}
+
+/*
+* Implements hook_ctools_plugin_directory().
+* ctools plugin location
+*/
+function lastime_ctools_plugin_directory($owner, $plugin_type) {
+
+  if ($owner == 'ctools' && $plugin_type == 'content_types') {
+
+    return 'plugins/' . $plugin_type;
+
+  }
+
+}
+
+
+ /**
+ * Implements hook_help().
+ * Just show help
+ */
+ 
+function weatherchannelonline_help($path, $arg) 
+{
+	
+	switch ($path) 
+	{
+
+		case "admin/help#weatherchannelonline":
+			return '<p>' . t("Displays last logged in. Access profile to change custom text.") . '</p>';
+			break;
+	}
+} 
